@@ -11,7 +11,8 @@ create table task(
        workflow text not null,
        state text not null,
        assigned_to text not null,
-       document_id integer not null references document(id),
+       document_type_id integer not null,
+       document_id integer not null,
        last_updated timestamp not null default now()
 );
 grant all on task to postgres;
