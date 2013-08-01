@@ -19,9 +19,20 @@
   (doseq [activity activities]
     (apply (resolve (:name activity)) context (:params activity))))
 
+(defn is-any-active
+  "takes a list of tasks for a given document, and returns a flag indicating whether any are still active"
+  [document-tasks]
+  (let [is-active? (fn [task]
+                     (not (task :complete)))]
+    (some is-active? document-tasks)))
+
 (defn create-task [workflow document-type-id document-id assigned-user]
   "creates a task using the given workflow definition, the document identification, and starts it up assigned to the given user"
-  (db/create-task (:name workflow) document-type-id document-id assigned-user))
+  ;; Get all existing tasks for given document-type-id and document-id
+  ;; and determine if any are still active
+  (if (is-any-active (db/find-tasks-for-document document-type-id document-id))
+    (throw (IllegalStateException. "There is an existing active task. Cannot create a new task"))
+    (db/create-task (:name workflow) document-type-id document-id assigned-user)))
 
 (defn transition-task
   "transitions a task from one state to the other, given the workflow definition, the task id, a set of black box parameters and the new user to which the task will be assigned in its new state"
@@ -33,10 +44,16 @@
         activities (:activities the-transition)
         initial-state-str (:state the-task)
         new-state-kw (:transition-to the-transition)
+        new-state (-> workflow :states new-state-kw)
         initial-user (:assigned_to the-task)]
+    
+    (println "transitioning... the transition: " the-transition) 
+    (println "new-state-kw: " new-state-kw) 
+    (println "new-state: " (name new-state-kw)) 
+    
     (db/transition-task
      #(execute-activities activities context)
-     (:id the-task) initial-state-str (name transition) (name new-state-kw) initial-user new-user)))
+     (:id the-task) initial-state-str (name transition) (name new-state-kw) (:final new-state) initial-user new-user)))
 
 (defn reassign-task
   "reassigns the task to another user without making a transition"
@@ -49,3 +66,6 @@
     (db/transition-task
      #(execute-activities activities context)
      task-id initial-state "reassign" initial-state initial-user new-user)))
+
+
+  

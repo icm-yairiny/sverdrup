@@ -4,7 +4,7 @@
         [korma.config]))
 
 ;;this database definition is temporary
-(defdb wflow (postgres {:db "bpolsp"
+(defdb wflow (postgres {:db "sverdrup"
                         :user "postgres"
                         :password "postgres"}))
 
@@ -33,7 +33,7 @@
 
 (defn- write-audit
   "writes an audit record to the database"
-  [task-id initial-state transition executed-by new-state assignee]
+  [task-id initial-state transition new-state executed-by assignee]
   (insert task_audit (values {:task-id task-id
                               :initial-state initial-state
                               :transition transition
@@ -48,7 +48,8 @@
                         :state "initial"
                         :assigned-to assignee
                         :document-type-id document-type-id
-                        :document-id document-id})))
+                        :document-id document-id
+                        :complete false})))
 
 (defn create-task [workflow-name document-type-id document-id assigned-user]
   "creates a task record and audit record"
@@ -57,13 +58,15 @@
      (write-audit  (:id task) "initial" "creation" "initial" assigned-user assigned-user)
      task)))
 
-(defn transition-task [activities-fn task-id initial-state transition-name new-state initial-user new-user]
-  "creates the audit record and modifies the task informatio, after running the given activities inside the same transaction"
+(defn transition-task [activities-fn task-id initial-state transition-name new-state is-final initial-user new-user]
+  "creates the audit record and modifies the task information, after running the given activities inside the same transaction"
+  
+  (println "test" initial-user)
+  
   (transaction
-   (activities-fn)
-   (write-audit task-id initial-state transition-name new-state
-                initial-user new-user)
-   (update task (set-fields {:state new-state :assigned-to new-user}))))
+   (activities-fn) 
+   (write-audit task-id initial-state transition-name new-state initial-user new-user)
+   (update task (set-fields {:state new-state :assigned-to new-user :complete is-final}))))
 
 (defn find-tasks-for-document
   "given a document type and document ID, returns all the tasks associated with the document, ordered by ID"
