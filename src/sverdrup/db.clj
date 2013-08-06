@@ -60,13 +60,10 @@
 
 (defn transition-task [activities-fn task-id initial-state transition-name new-state is-final initial-user new-user]
   "creates the audit record and modifies the task information, after running the given activities inside the same transaction"
-  
-  (println "test" initial-user)
-  
   (transaction
    (activities-fn) 
    (write-audit task-id initial-state transition-name new-state initial-user new-user)
-   (update task (set-fields {:state new-state :assigned-to new-user :complete is-final}))))
+   (update task (where {:id task-id}) (set-fields {:state new-state :assigned-to new-user :complete is-final}))))
 
 (defn find-tasks-for-document
   "given a document type and document ID, returns all the tasks associated with the document, ordered by ID"

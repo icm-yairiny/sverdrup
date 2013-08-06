@@ -45,15 +45,10 @@
         initial-state-str (:state the-task)
         new-state-kw (:transition-to the-transition)
         new-state (-> workflow :states new-state-kw)
-        initial-user (:assigned_to the-task)]
-    
-    (println "transitioning... the transition: " the-transition) 
-    (println "new-state-kw: " new-state-kw) 
-    (println "new-state: " (name new-state-kw)) 
-    
+        initial-user (:assigned-to the-task)]
     (db/transition-task
      #(execute-activities activities context)
-     (:id the-task) initial-state-str (name transition) (name new-state-kw) (:final new-state) initial-user new-user)))
+     (:id the-task) initial-state-str (name transition) (name new-state-kw) (or (:final new-state) false) initial-user new-user)))
 
 (defn reassign-task
   "reassigns the task to another user without making a transition"

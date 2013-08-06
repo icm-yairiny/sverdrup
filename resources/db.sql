@@ -13,6 +13,7 @@ create table task(
        assigned_to text not null,
        document_type_id integer not null,
        document_id integer not null,
+       complete boolean not null default false,
        last_updated timestamp not null default now()
 );
 grant all on task to postgres;
@@ -25,7 +26,7 @@ create function update_timestamp() returns trigger as $update_timestamp$
        end;
 $update_timestamp$ language plpgsql;
 
-create trigger task_update after update on task execute procedure update_timestamp();
+create trigger task_update after update on task for each row execute procedure update_timestamp();
 
 create table task_audit(
        id serial primary key,
